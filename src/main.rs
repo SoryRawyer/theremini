@@ -9,15 +9,19 @@ fn main() {
 
     let sample_rate = format.sample_rate.0 as f32;
     let mut sample_clock = 0f32;
-    let mut rand_range = RandRange::new(440.0, 220.0, 880.0, 0.005);
+    let mut frequency: f32 = 0.0;
+    let mut amplitude: f32 = 0.0;
+    let mut frequency_range = RandRange::new(440.0, 220.0, 880.0, 0.005);
+    let mut amplitude_range = RandRange::new(1.0, 0.5, 7.0, 0.005);
 
     println!("{:?}", sample_rate);
     println!("{:?}", sample_clock);
 
     let mut next_value = || {
         sample_clock = (sample_clock + 1.0 ) % sample_rate;
-        rand_range.next(sample_clock, sample_rate)
-        // (sample_clock * frequency * 2.0 * 3.141592 / sample_rate).sin()
+        frequency = frequency_range.next();
+        amplitude = amplitude_range.next();
+        amplitude * (sample_clock * frequency * 2.0 * 3.141592 / sample_rate).sin()
     };
 
     event_loop.run( move |_, data| {
@@ -61,7 +65,7 @@ struct RandRange {
 }
 
 impl RandRange {
-    fn next(&mut self, sample_clock: f32, sample_rate: f32) -> f32 {
+    fn next(&mut self) -> f32 {
         let mut new_next = self.next + (self.step * self.direction as f32);
         if new_next > self.max || new_next < self.min {
             self.direction *= -1;
@@ -69,7 +73,7 @@ impl RandRange {
         }
         self.curr = self.next;
         self.next = new_next;
-        (sample_clock * self.curr * 2.0 * 3.141592 / sample_rate).sin() * 7.0
+        self.curr
     }
 
     fn new(curr: f32, min: f32, max: f32, step: f32) -> RandRange {
