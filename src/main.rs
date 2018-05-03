@@ -3,7 +3,7 @@ extern crate serialport;
 
 use std::io;
 
-use std::sync::mpsc::{Sender, Receiver};
+use std::sync::mpsc::{SyncSender, Receiver};
 use std::sync::mpsc;
 use std::thread;
 
@@ -18,18 +18,16 @@ fn main() {
     let mut sample_clock = 0f32;
     let mut frequency: f32 = 440.0;
     let mut port_reader = PortReader::new("/dev/cu.usbmodem1411");
-    let (tx, rx): (Sender<i32>, Receiver<i32>) = mpsc::channel();
+    let (tx, rx): (SyncSender<i32>, Receiver<i32>) = mpsc::sync_channel(1);
     let mut i = 0;
-    let mut j = 0;
 
     thread::spawn(move || {
         loop {
-            // let mut now = Instant::now();
-            j += 1;
-            if j % 1000 == 0 {
-                tx.send(port_reader.read_value()).unwrap();
+            if let Ok(_) = tx.try_send(port_reader.read_value()) {
+                continue;
+            } else {
+                continue;
             }
-            // times.push(now.elapsed().subsec_nanos());
         }
     });
 
