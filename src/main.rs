@@ -34,19 +34,17 @@ fn main() {
     println!("{:?}", sample_rate);
     println!("{:?}", sample_clock);
 
+    // only read from the channel every thousandth sample
+    // otherwise we won't be able to generate samples fast enough to produce an audible sound
     let mut next_value = move || {
-        // let now = Instant::now();
         i += 1;
         if i % 1000 == 0 {
             if let Ok(val) = rx.recv() {
-                // println!("{:?}", val);
                 frequency = (val + 100) as f32; 
             }
         }
 
-        // frequency = (port_reader.read_value() + 300) as f32;
         sample_clock = (sample_clock + 1.0 ) % sample_rate;
-        // println!("{:?}", now.elapsed());
         (2.0 * (sample_clock * frequency * 2.0 * 3.141592 / sample_rate).sin())
     };
 

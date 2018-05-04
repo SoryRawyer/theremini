@@ -1,6 +1,10 @@
-### teremini — a theremin using rust and arduino
+### theremini — a theremin using rust and arduino
 
 given a frequency and amplitude, generate f32 samples  
-uses [cpal](https://github.com/tomaka/cpal) to make the samples audible  
-todo: get voltage readings from IR sensors via arduino (using [ruduino](https://github.com/avr-rust/ruduino)?)  
-todo: use said voltage values to change the frequency and amplitude
+uses:
+- [cpal](https://github.com/tomaka/cpal) to make the samples audible  
+- [serialport-rs](https://github.com/Susurrus/serialport-rs) to read data from the arduino
+
+todo:
+- add another sensor to control the amplitude of the signal
+- smooth out the sample generating so that we can get rid of all that cracklin'
