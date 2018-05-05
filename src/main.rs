@@ -3,9 +3,9 @@ extern crate serialport;
 
 use std::io;
 
-use std::sync::mpsc::{SyncSender, Receiver};
-use std::sync::mpsc;
 use std::thread;
+use std::sync::atomic::{AtomicIsize, Ordering};
+use std::sync::Arc;
 
 fn main() {
     let device = cpal::default_output_device().expect("failed to get output device");
@@ -16,17 +16,18 @@ fn main() {
 
     let sample_rate = format.sample_rate.0 as f32;
     let mut sample_clock = 0f32;
+    let sensor_value = Arc::new(AtomicIsize::new(0));
+    let sensor_clone = sensor_value.clone();
     let mut frequency: f32 = 440.0;
     let mut port_reader = PortReader::new("/dev/cu.usbmodem1411");
-    let (tx, rx): (SyncSender<i32>, Receiver<i32>) = mpsc::sync_channel(1);
-    let mut i = 0;
 
     thread::spawn(move || {
+        let mut i = 0;
         loop {
-            if let Ok(_) = tx.try_send(port_reader.read_value()) {
-                continue;
-            } else {
-                continue;
+            i += 1;
+            if i % 1000 == 0 {
+                let value = port_reader.read_value();
+                sensor_clone.store(value as isize, Ordering::Relaxed);
             }
         }
     });
@@ -36,14 +37,12 @@ fn main() {
 
     // only read from the channel every thousandth sample
     // otherwise we won't be able to generate samples fast enough to produce an audible sound
-    let mut next_value = move || {
-        i += 1;
-        if i % 1000 == 0 {
-            if let Ok(val) = rx.recv() {
-                frequency = (val + 100) as f32; 
-            }
+    let mut j = 0;
+    let mut next_value = || {
+        j += 1;
+        if j % 1000 == 0 {
+            frequency = ((sensor_value.load(Ordering::Relaxed) as i32) + 100) as f32;
         }
-
         sample_clock = (sample_clock + 1.0 ) % sample_rate;
         (2.0 * (sample_clock * frequency * 2.0 * 3.141592 / sample_rate).sin())
     };
@@ -105,10 +104,7 @@ impl PortReader {
             match self.port.read(serial_buf.as_mut_slice()) {
                 Ok(t) => {
                     for i in 0..t {
-                        // if we're at a newline:
-                        //   append buffer to self.unread_stuff, then clear self.unread_stuff
                         if serial_buf[i] == 10 {
-                            // println!("{:?}", value);
                             self.unread_stuff = serial_buf[(i+1)..t].to_vec();
                             if let Ok(val) = String::from_utf8(value).unwrap().parse() {
                                 return val
