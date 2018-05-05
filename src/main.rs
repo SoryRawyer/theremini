@@ -22,13 +22,19 @@ fn main() {
     let mut port_reader = PortReader::new("/dev/cu.usbmodem1411");
 
     thread::spawn(move || {
-        let mut i = 0;
+        // store the average of the last 100 values
+        let mut sensor_values: Vec<i32> = Vec::new();
         loop {
-            i += 1;
-            if i % 1000 == 0 {
-                let value = port_reader.read_value();
-                sensor_clone.store(value as isize, Ordering::Relaxed);
+            if sensor_values.len() == 100 {
+                sensor_values.remove(0);
             }
+            sensor_values.push(port_reader.read_value());
+            let mut sum = 0;
+            for i in &sensor_values{
+                sum += i;
+            }
+            let avg = sum as f32 / (sensor_values.len() as f32);
+            sensor_clone.store(avg as isize, Ordering::Relaxed);
         }
     });
 
@@ -37,12 +43,9 @@ fn main() {
 
     // only read from the channel every thousandth sample
     // otherwise we won't be able to generate samples fast enough to produce an audible sound
-    let mut j = 0;
-    let mut next_value = || {
-        j += 1;
-        if j % 1000 == 0 {
-            frequency = ((sensor_value.load(Ordering::Relaxed) as i32) + 100) as f32;
-        }
+    let mut next_value = || {;
+        frequency = ((sensor_value.load(Ordering::Relaxed) as i32) + 100) as f32;
+        // println!("{:?}", frequency);
         sample_clock = (sample_clock + 1.0 ) % sample_rate;
         (2.0 * (sample_clock * frequency * 2.0 * 3.141592 / sample_rate).sin())
     };
