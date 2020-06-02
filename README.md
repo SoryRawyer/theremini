@@ -1,5 +1,7 @@
 ### theremini — a theremin using rust and arduino
 
+you can read more about this project on [my blog](https://blog.sory.biz/posts/theremini-1/).  
+
 given a frequency and amplitude, generate f32 samples  
 uses:
 - [cpal](https://github.com/tomaka/cpal) to make the samples audible  
